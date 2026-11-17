@@ -3,6 +3,7 @@ import type { Application, Tracker } from '@/domain/types';
 import { followUpState } from '@/domain/automation';
 import { useStore } from '@/state/store';
 import { relativeDays } from '@/lib/dates';
+import { ExternalLink } from '@/components/ExternalLink';
 
 /** Vue Kanban : une colonne par statut, glisser-déposer pour changer de statut. */
 export function ApplicationBoard({ tracker, applications, onOpen }: { tracker: Tracker; applications: Application[]; onOpen: (id: string) => void }) {
@@ -53,6 +54,13 @@ export function ApplicationBoard({ tracker, applications, onOpen }: { tracker: T
                     {fu.kind === 'due' && <span className="followup due"> · 🔔 relancer</span>}
                     {fu.kind === 'scheduled' && <> · relance {relativeDays(fu.date, store.today)}</>}
                   </div>
+                  {a.link && (
+                    <div style={{ marginTop: 8 }}>
+                      <ExternalLink value={a.link} className="offer-link">
+                        Voir l’offre ↗
+                      </ExternalLink>
+                    </div>
+                  )}
                 </div>
               );
             })}

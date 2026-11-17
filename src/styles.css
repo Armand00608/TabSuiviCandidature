@@ -286,3 +286,13 @@ table.data td .sub { font-weight: 400; font-size: 0.8rem; color: var(--text-mute
 .toast-stack { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; flex-direction: column; gap: 8px; align-items: center; }
 .toast { background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); display: flex; gap: 12px; align-items: center; animation: fade 0.2s; }
 .toast button { all: unset; cursor: pointer; font-weight: 700; color: var(--primary-soft); }
+
+/* Liens vers les offres */
+.offer-link {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 9px; border-radius: 99px;
+  background: var(--primary-soft); color: var(--primary);
+  font-size: 0.78rem; font-weight: 600; white-space: nowrap;
+}
+.offer-link:hover { text-decoration: none; background: var(--primary); color: white; }
+.company-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
