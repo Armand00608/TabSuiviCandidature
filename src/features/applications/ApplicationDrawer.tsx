@@ -5,6 +5,7 @@ import { followUpState, isStale } from '@/domain/automation';
 import { getStatus, noResponseStatus } from '@/domain/status';
 import { Overlay } from '@/components/Overlay';
 import { StatusBadge } from '@/components/Status';
+import { ExternalLink } from '@/components/ExternalLink';
 import { useToast } from '@/components/Toast';
 import { formatDate, formatDateTime, relativeDays } from '@/lib/dates';
 import { ApplicationForm, diffDraft, draftFrom } from './ApplicationForm';
@@ -96,9 +97,14 @@ export function ApplicationDrawer({ applicationId, onClose }: { applicationId: s
           {tracker.name}
         </Link>
         {app.link && (
-          <a href={app.link} target="_blank" rel="noreferrer" className="small">
+          <ExternalLink value={app.link} className="offer-link">
             Voir l’offre ↗
-          </a>
+          </ExternalLink>
+        )}
+        {app.contactInfo && (
+          <span className="small">
+            Contact : <ExternalLink value={app.contactInfo} />
+          </span>
         )}
       </div>
 

@@ -3,6 +3,7 @@ import type { SortKey } from '@/domain/query';
 import { followUpState } from '@/domain/automation';
 import { getStatus, isOpenCategory } from '@/domain/status';
 import { StatusSelect } from '@/components/Status';
+import { ExternalLink } from '@/components/ExternalLink';
 import { useStore } from '@/state/store';
 import { formatDate, relativeDays } from '@/lib/dates';
 
@@ -44,7 +45,6 @@ export function ApplicationTable({ tracker, applications, sort, desc, onSort, on
             <Th k="followUp">Relance</Th>
             <Th k="status">Statut</Th>
             <Th>Prochaine action</Th>
-            <Th>Lien</Th>
           </tr>
         </thead>
         <tbody>
@@ -66,14 +66,25 @@ export function ApplicationTable({ tracker, applications, sort, desc, onSort, on
                   </button>
                 </td>
                 <td className="company">
-                  {a.company}
+                  <div className="company-line">
+                    {a.company}
+                    {a.link && (
+                      <ExternalLink value={a.link} className="offer-link">
+                        Voir l’offre ↗
+                      </ExternalLink>
+                    )}
+                  </div>
                   {a.position && <div className="sub truncate" style={{ maxWidth: 280 }}>{a.position}</div>}
                 </td>
                 <td className="nowrap">{a.city}</td>
                 <td className="nowrap">{a.type}</td>
                 <td>
                   {a.contactName}
-                  {a.contactInfo && <div className="sub truncate" style={{ maxWidth: 180 }}>{a.contactInfo}</div>}
+                  {a.contactInfo && (
+                    <div className="sub truncate" style={{ maxWidth: 180 }}>
+                      <ExternalLink value={a.contactInfo} />
+                    </div>
+                  )}
                 </td>
                 <td className="nowrap">{formatDate(a.sentAt)}</td>
                 <td className="nowrap">
@@ -94,13 +105,6 @@ export function ApplicationTable({ tracker, applications, sort, desc, onSort, on
                     {a.nextAction}
                   </div>
                   {a.dueDate && <div className="sub">avant le {formatDate(a.dueDate)}</div>}
-                </td>
-                <td>
-                  {a.link && (
-                    <a href={a.link} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} aria-label="Ouvrir l'offre">
-                      ↗
-                    </a>
-                  )}
                 </td>
               </tr>
             );
