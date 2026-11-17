@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react';
 import type { Tracker } from '@/domain/types';
-import { columnOptions, guessColumns, rowsToApplications, targetToValue, valueToTarget, type ColumnTarget } from '@/domain/tableIO';
+import { columnOptions, fillEmptyFields, guessColumns, rowsToApplications, targetToValue, valueToTarget, type ColumnTarget } from '@/domain/tableIO';
 import { parseDelimited } from '@/lib/csv';
 import { useStore } from '@/state/store';
 import { Overlay } from '@/components/Overlay';
 import { useToast } from '@/components/Toast';
 
 const norm = (s: string) => s.trim().toLowerCase();
+
+/** Que faire d'une ligne dont l'entreprise est déjà dans le suivi. */
+type DuplicateMode = 'skip' | 'fill' | 'add';
 
 /**
  * Import depuis un tableur : on colle directement les cellules copiées
@@ -17,7 +20,7 @@ export function ImportDialog({ tracker, onClose }: { tracker: Tracker; onClose: 
   const notify = useToast();
   const [text, setText] = useState('');
   const [hasHeader, setHasHeader] = useState(true);
-  const [skipDuplicates, setSkipDuplicates] = useState(true);
+  const [duplicateMode, setDuplicateMode] = useState<DuplicateMode>('skip');
   const [overrides, setOverrides] = useState<Record<number, ColumnTarget>>({});
 
   const table = useMemo(() => (text.trim() ? parseDelimited(text) : []), [text]);
@@ -28,8 +31,17 @@ export function ImportDialog({ tracker, onClose }: { tracker: Tracker; onClose: 
   const columns = Array.from({ length: width }, (_, i) => overrides[i] ?? guessed[i] ?? ({ kind: 'ignore' } as ColumnTarget));
 
   const parsed = useMemo(() => rowsToApplications(body, columns, tracker, store.today), [body, columns, tracker, store.today]);
-  const existing = new Set(store.applicationsOf(tracker.id).map((a) => norm(a.company)));
-  const toImport = skipDuplicates ? parsed.filter((p) => !existing.has(norm(p.input.company ?? ''))) : parsed;
+  const existing = new Map(store.applicationsOf(tracker.id).map((a) => [norm(a.company), a]));
+  const isDuplicate = (p: (typeof parsed)[number]) => existing.has(norm(p.input.company ?? ''));
+  const toImport = duplicateMode === 'add' ? parsed : parsed.filter((p) => !isDuplicate(p));
+  const toFill =
+    duplicateMode === 'fill'
+      ? parsed.flatMap((p) => {
+          const app = existing.get(norm(p.input.company ?? ''));
+          const patch = app && fillEmptyFields(app, p.input);
+          return app && patch ? [{ id: app.id, patch }] : [];
+        })
+      : [];
   const duplicates = parsed.length - toImport.length;
   const warnings = parsed.flatMap((p) => p.warnings.map((w) => `${p.input.company} : ${w}`));
   const hasCompany = columns.some((c) => c.kind === 'core' && c.field === 'company');
@@ -41,8 +53,9 @@ export function ImportDialog({ tracker, onClose }: { tracker: Tracker; onClose: 
   };
 
   const submit = () => {
-    const n = store.addApplications(tracker.id, toImport.map((p) => p.input));
-    notify(`${n} candidature(s) importée(s)`);
+    const n = toImport.length ? store.addApplications(tracker.id, toImport.map((p) => p.input)) : 0;
+    toFill.forEach(({ id, patch }) => store.patchApplication(id, patch));
+    notify([`${n} candidature(s) importée(s)`, toFill.length ? `${toFill.length} complétée(s)` : ''].filter(Boolean).join(', '));
     onClose();
   };
 
@@ -54,13 +67,20 @@ export function ImportDialog({ tracker, onClose }: { tracker: Tracker; onClose: 
       footer={
         <>
           <span className="left small muted">
-            {parsed.length > 0 && `${toImport.length} à importer${duplicates ? `, ${duplicates} doublon(s) ignoré(s)` : ''}`}
+            {parsed.length > 0 &&
+              [
+                `${toImport.length} à importer`,
+                toFill.length ? `${toFill.length} à compléter` : '',
+                duplicates - toFill.length > 0 ? `${duplicates - toFill.length} doublon(s) ignoré(s)` : '',
+              ]
+                .filter(Boolean)
+                .join(', ')}
           </span>
           <button className="btn" onClick={onClose}>
             Annuler
           </button>
-          <button className="btn btn-primary" disabled={!toImport.length || !hasCompany} onClick={submit}>
-            Importer {toImport.length || ''}
+          <button className="btn btn-primary" disabled={!(toImport.length + toFill.length) || !hasCompany} onClick={submit}>
+            Importer {toImport.length + toFill.length || ''}
           </button>
         </>
       }
@@ -91,9 +111,13 @@ export function ImportDialog({ tracker, onClose }: { tracker: Tracker; onClose: 
             <input type="checkbox" checked={hasHeader} onChange={(e) => setHasHeader(e.target.checked)} />
             La première ligne contient les en-têtes
           </label>
-          <label className="checkbox small">
-            <input type="checkbox" checked={skipDuplicates} onChange={(e) => setSkipDuplicates(e.target.checked)} />
-            Ignorer les entreprises déjà présentes
+          <label className="small" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            Entreprises déjà présentes :
+            <select className="select" value={duplicateMode} onChange={(e) => setDuplicateMode(e.target.value as DuplicateMode)}>
+              <option value="skip">les ignorer</option>
+              <option value="fill">compléter leurs champs vides</option>
+              <option value="add">les ajouter en double</option>
+            </select>
           </label>
         </div>
 

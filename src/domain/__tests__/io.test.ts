@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { parseDelimited, toDelimited } from '@/lib/csv';
 import { parseLooseDate } from '@/lib/dates';
 import { createTracker } from '../templates';
-import { guessColumns, rowsToApplications } from '../tableIO';
+import { fillEmptyFields, guessColumns, rowsToApplications } from '../tableIO';
+import { createApplication } from '../application';
 import { normalizeAppData } from '@/storage/schema';
 import { buildSeedData } from '@/data/seed';
 
@@ -74,5 +75,26 @@ describe('schéma', () => {
   it('refuse un contenu invalide', () => {
     expect(() => normalizeAppData('hello')).toThrow();
     expect(() => normalizeAppData({})).toThrow();
+  });
+});
+
+describe('compléter une candidature existante', () => {
+  const clock = { today: '2026-11-17', now: '2026-11-17T10:00:00.000Z' };
+  const app = createApplication(tracker, { company: 'Zama', city: 'Paris', notes: 'Exigeant' }, clock);
+
+  it('remplit seulement les champs vides', () => {
+    const patch = fillEmptyFields(app, { company: 'Zama', city: 'Lyon', contactName: 'Pascal Paillier', notes: 'Autre' });
+    expect(patch).toEqual({ contactName: 'Pascal Paillier' });
+  });
+
+  it('ne renvoie rien quand tout est déjà renseigné', () => {
+    expect(fillEmptyFields(app, { company: 'Zama', city: 'Lyon' })).toBeNull();
+  });
+});
+
+describe('contacts des données de départ', () => {
+  it('chaque piste du suivi Stage a un contact', () => {
+    const { applications } = buildSeedData({ today: '2026-11-17', now: '2026-11-17T10:00:00.000Z' });
+    expect(applications.filter((a) => !a.contactName || !a.contactInfo).map((a) => a.company)).toEqual([]);
   });
 });

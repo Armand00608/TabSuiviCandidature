@@ -5,6 +5,7 @@
  */
 import type { Application, Tracker } from './types';
 import type { NewApplicationInput } from './application';
+import type { ApplicationPatch } from './automation';
 import { getStatus } from './status';
 import { formatDate, parseLooseDate } from '@/lib/dates';
 import { slugify } from '@/lib/id';
@@ -142,4 +143,25 @@ export function applicationsToRows(tracker: Tracker, apps: Application[]): strin
     ...tracker.customFields.map((f) => a.custom[f.id] ?? ''),
   ]);
   return [header, ...rows];
+}
+
+const FILLABLE_FIELDS = ['city', 'position', 'contactName', 'contactInfo', 'link', 'notes', 'dueDate'] as const;
+
+/**
+ * Modification qui complète une candidature existante avec les valeurs d'une
+ * ligne importée, sans jamais écraser ce qui est déjà renseigné. Sert à
+ * ajouter, par exemple, les contacts trouvés pour des entreprises déjà suivies.
+ * Renvoie `null` s'il n'y a rien à compléter.
+ */
+export function fillEmptyFields(app: Application, input: NewApplicationInput): ApplicationPatch | null {
+  const patch: ApplicationPatch = {};
+  for (const field of FILLABLE_FIELDS) {
+    const value = input[field];
+    if (value && !app[field]?.trim()) patch[field] = value;
+  }
+  const custom = Object.fromEntries(
+    Object.entries(input.custom ?? {}).filter(([id, v]) => v && !app.custom[id]?.trim()),
+  );
+  if (Object.keys(custom).length) patch.custom = { ...app.custom, ...custom };
+  return Object.keys(patch).length ? patch : null;
 }

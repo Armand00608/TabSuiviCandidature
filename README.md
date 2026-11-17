@@ -16,6 +16,8 @@ Au premier lancement, le suivi « Stage 2027 » est pré-rempli avec les 23 pist
   - historique de chaque candidature tenu automatiquement.
 - Vue **tableau** (tri, recherche, filtres) et vue **Kanban** (glisser-déposer pour changer de statut).
 - **Import** par copier-coller depuis Excel / Google Sheets ou fichier CSV (colonnes reconnues automatiquement), **export CSV** compatible Excel.
+  Pour une entreprise déjà suivie, l'import peut **compléter ses champs vides** (contact, lien…) sans rien écraser.
+- **Contacts** : `data/contacts-stage-2027.csv` liste un interlocuteur pour chacune des 23 pistes du suivi « Stage 2027 », avec un lien de recherche LinkedIn. À importer avec l'option « compléter leurs champs vides ».
 - **Sauvegarde / restauration** JSON. Les données sont stockées dans le navigateur (aucun compte, aucun serveur) et synchronisées entre onglets.
 - Thème clair / sombre automatique, responsive mobile.
 
