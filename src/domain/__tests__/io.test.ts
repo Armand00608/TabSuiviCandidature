@@ -98,3 +98,36 @@ describe('contacts des données de départ', () => {
     expect(applications.filter((a) => !a.contactName || !a.contactInfo).map((a) => a.company)).toEqual([]);
   });
 });
+
+describe('migration v1 -> v2 : contacts du stage', () => {
+  const v1 = () => {
+    const data = buildSeedData({ today: '2026-11-17', now: '2026-11-17T10:00:00.000Z' });
+    const apps = data.applications.map((a) => ({ ...a, contactName: '', contactInfo: '' }));
+    const wiremind = apps.find((a) => a.company === 'Wiremind')!;
+    wiremind.nextAction = 'Trouver lead data';
+    const zama = apps.find((a) => a.company === 'Zama')!;
+    zama.contactName = 'Déjà renseigné';
+    const patrowl = apps.find((a) => a.company === 'Patrowl')!;
+    patrowl.nextAction = 'Action réécrite à la main';
+    return JSON.parse(JSON.stringify({ ...data, schemaVersion: 1, applications: apps }));
+  };
+
+  it('ajoute les contacts sans écraser ce qui est renseigné', () => {
+    const { applications, schemaVersion } = normalizeAppData(v1());
+    const get = (c: string) => applications.find((a) => a.company === c)!;
+    expect(schemaVersion).toBe(2);
+    expect(applications.every((a) => a.contactInfo.startsWith('https://www.linkedin.com/'))).toBe(true);
+    expect(get('Wiremind').contactName).toContain('Constant Roques');
+    expect(get('Wiremind').nextAction).toBe('Écrire à Constant Roques');
+    expect(get('Zama').contactName).toBe('Déjà renseigné');
+    expect(get('Patrowl').nextAction).toBe('Action réécrite à la main');
+    expect(get('Wiremind').history.at(-1)?.message).toMatch(/Contact trouvé/);
+  });
+
+  it('ne repasse pas sur des données déjà migrées', () => {
+    const once = normalizeAppData(v1());
+    const z = once.applications.find((a) => a.company === 'Zama')!;
+    z.contactInfo = '';
+    expect(normalizeAppData(JSON.parse(JSON.stringify(once))).applications.find((a) => a.company === 'Zama')!.contactInfo).toBe('');
+  });
+});

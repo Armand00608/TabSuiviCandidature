@@ -113,3 +113,25 @@ export const STAGE_CONTACTS: Record<string, ContactLead> = {
     contactInfo: linkedinSearch('Vladimir Kolla Patrowl'),
   },
 };
+
+/**
+ * Prochaines actions d'origine du tableau devenues obsolètes une fois le
+ * contact trouvé : [action d'origine, nouvelle action]. Une action que
+ * l'utilisateur a déjà modifiée n'est jamais remplacée.
+ */
+export const STAGE_NEXT_ACTION_UPDATES: Record<string, [string, string]> = {
+  Soget: ['Trouver un manager data/IT sur LinkedIn', 'Écrire à Julien Prével et demander le manager data/IT'],
+  'Groupe Sogestran': ["Proposer un stage à l'équipe BI/Data", 'Proposer un stage BI/Data à Vincent Millet'],
+  'Data Concept': ['Trouver CTO / responsable dev', 'Écrire à Serge Rouxel'],
+  'Artelia Digital Solutions': ['Trouver responsable agence', 'Écrire à Cyrille Brichant'],
+  Koesio: ['Trouver responsable agence', 'Identifier le responsable de l’agence du Havre'],
+  'Scaleway (ex-Saagie)': ['Trouver lead data / plateforme', 'Écrire à Arnaud Muller'],
+  YesWeHack: ['Vérifier jobs.yeswehack.com puis CTO', 'Vérifier jobs.yeswehack.com puis écrire à Romain Lecoeuvre'],
+  Sinay: ['Trouver CTO / lead data', 'Écrire à David Lelouvier'],
+  Attineos: ['Trouver responsable agence Rouen', 'Écrire à Stéphane Merai, demander l’agence de Rouen'],
+  Wiremind: ['Trouver lead data', 'Écrire à Constant Roques'],
+  Didomi: ['Trouver lead backend', 'Écrire au CTO (Tiberiu)'],
+  Astran: ['Trouver CTO', 'Écrire à Gilles Seghaier'],
+  Evertrust: ['Trouver CTO', 'Écrire à Alexandre Aufrère'],
+  Patrowl: ['Trouver CTO', 'Écrire à Vladimir Kolla'],
+};

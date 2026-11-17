@@ -7,8 +7,9 @@ import type { AppData, Application, AutomationSettings, StatusCategory, Tracker,
 import { createTracker } from '@/domain/templates';
 import { isValidISODate } from '@/lib/dates';
 import { uid } from '@/lib/id';
+import { STAGE_CONTACTS, STAGE_NEXT_ACTION_UPDATES } from '@/data/contacts';
 
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 
 const CATEGORIES: StatusCategory[] = ['todo', 'waiting', 'active', 'positive', 'rejected', 'closed'];
 const TONES: Tone[] = ['neutral', 'info', 'warning', 'success', 'danger', 'accent'];
@@ -113,8 +114,49 @@ function migrate(raw: Raw): Raw {
   if (version > CURRENT_SCHEMA_VERSION) {
     throw new InvalidDataError('Ces données proviennent d’une version plus récente du site.');
   }
-  // v1 -> v2 : (exemple) if (version < 2) raw = { ...raw, ... }
+  if (version < 2) raw = addStageContacts(raw);
   return raw;
+}
+
+/**
+ * v1 -> v2 : ajoute les contacts trouvés pour les pistes du suivi de stage
+ * d'origine. Ne remplit que les champs vides et ne remplace une prochaine
+ * action que si elle est restée celle du tableau d'origine.
+ */
+function addStageContacts(raw: Raw): Raw {
+  if (!Array.isArray(raw.trackers) || !Array.isArray(raw.applications)) return raw;
+  const stageTrackers = new Set(raw.trackers.filter(isObj).filter((t) => t.kind === 'stage').map((t) => t.id));
+  const now = new Date().toISOString();
+  const norm = (v: unknown) => str(v).trim().toLowerCase();
+  const contacts = new Map(Object.entries(STAGE_CONTACTS).map(([company, lead]) => [norm(company), lead]));
+  const actions = new Map(Object.entries(STAGE_NEXT_ACTION_UPDATES).map(([company, pair]) => [norm(company), pair]));
+
+  const applications = raw.applications.map((a) => {
+    if (!isObj(a) || !stageTrackers.has(a.trackerId)) return a;
+    const lead = contacts.get(norm(a.company));
+    if (!lead) return a;
+    const next: Raw = { ...a };
+    const changed: string[] = [];
+    if (!str(a.contactName).trim()) {
+      next.contactName = lead.contactName;
+      changed.push('contact');
+    }
+    if (!str(a.contactInfo).trim()) {
+      next.contactInfo = lead.contactInfo;
+      changed.push('coordonnées');
+    }
+    const action = actions.get(norm(a.company));
+    if (action && str(a.nextAction).trim() === action[0]) {
+      next.nextAction = action[1];
+      changed.push('prochaine action');
+    }
+    if (!changed.length) return a;
+    const history = Array.isArray(a.history) ? a.history : [];
+    next.history = [...history, { id: uid('h'), at: now, kind: 'auto', message: `Contact trouvé ajouté : ${changed.join(', ')}` }];
+    next.updatedAt = now;
+    return next;
+  });
+  return { ...raw, applications };
 }
 
 export function normalizeAppData(input: unknown): AppData {
