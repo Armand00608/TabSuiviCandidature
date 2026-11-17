@@ -16,7 +16,8 @@ export interface ContactLead {
 export const linkedinSearch = (keywords: string) =>
   `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(keywords)}`;
 
-export const STAGE_CONTACTS: Record<string, ContactLead> = {
+/** Contacts tels qu'ajoutés en v2 (lien LinkedIn seul). */
+export const STAGE_LINKEDIN_CONTACTS: Record<string, ContactLead> = {
   // Offres de grands groupes : le bon interlocuteur est le recruteur ou le manager de l'offre.
   Enedis: {
     contactName: 'Recruteur·se de l’offre (à identifier)',
@@ -113,6 +114,35 @@ export const STAGE_CONTACTS: Record<string, ContactLead> = {
     contactInfo: linkedinSearch('Vladimir Kolla Patrowl'),
   },
 };
+
+/**
+ * Emails professionnels PROBABLES, déduits du format d'adresse le plus courant
+ * de chaque entreprise (annuaires LeadIQ, Prospeo, Mailmo, novembre 2026).
+ * Aucun n'est vérifié : un envoi peut revenir en erreur.
+ */
+export const STAGE_EMAILS: Record<string, string> = {
+  Soget: 'julien.prevel@soget.fr',
+  'Groupe Sogestran': 'vincent.millet@sogestran.com',
+  'Artelia Digital Solutions': 'cyrille.brichant@arteliagroup.com',
+  Koesio: 'thierry.parent@koesio.com',
+  'Scaleway (ex-Saagie)': 'arnaudmuller@scaleway.com',
+  YesWeHack: 'r.lecoeuvre@yeswehack.com',
+  Sinay: 'david.lelouvier@sinay.fr',
+  Attineos: 'stephane.merai@attineos.com',
+  Wiremind: 'croques@wiremind.io',
+  Zama: 'pascal.paillier@zama.ai',
+  Astran: 'g.seghaier@astran.io',
+  Evertrust: 'alexandre.aufrere@evertrust.fr',
+  Patrowl: 'v.kolla@patrowl.io',
+};
+
+/** Contacts actuels : email probable (s'il existe) suivi du lien LinkedIn. */
+export const STAGE_CONTACTS: Record<string, ContactLead> = Object.fromEntries(
+  Object.entries(STAGE_LINKEDIN_CONTACTS).map(([company, lead]) => {
+    const email = STAGE_EMAILS[company];
+    return [company, email ? { ...lead, contactInfo: `${email} (à vérifier) ${lead.contactInfo}` } : lead];
+  }),
+);
 
 /**
  * Prochaines actions d'origine du tableau devenues obsolètes une fois le

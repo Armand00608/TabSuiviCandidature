@@ -22,3 +22,19 @@ export function linkLabel(href: string): string {
     return href;
   }
 }
+
+/**
+ * Découpe une saisie pouvant contenir plusieurs coordonnées
+ * ("j.doe@acme.fr (à vérifier) https://linkedin...") en morceaux :
+ * chaque lien reconnu est séparé, le texte libre entre eux est conservé.
+ */
+export function splitLinks(value: string): { text: string; href: string | null }[] {
+  const parts: { text: string; href: string | null }[] = [];
+  for (const word of value.trim().split(/\s+/).filter(Boolean)) {
+    const href = toHref(word);
+    const last = parts[parts.length - 1];
+    if (!href && last && !last.href) last.text += ` ${word}`;
+    else parts.push({ text: word, href });
+  }
+  return parts;
+}

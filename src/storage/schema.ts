@@ -7,9 +7,9 @@ import type { AppData, Application, AutomationSettings, StatusCategory, Tracker,
 import { createTracker } from '@/domain/templates';
 import { isValidISODate } from '@/lib/dates';
 import { uid } from '@/lib/id';
-import { STAGE_CONTACTS, STAGE_NEXT_ACTION_UPDATES } from '@/data/contacts';
+import { STAGE_CONTACTS, STAGE_LINKEDIN_CONTACTS, STAGE_NEXT_ACTION_UPDATES } from '@/data/contacts';
 
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 
 const CATEGORIES: StatusCategory[] = ['todo', 'waiting', 'active', 'positive', 'rejected', 'closed'];
 const TONES: Tone[] = ['neutral', 'info', 'warning', 'success', 'danger', 'accent'];
@@ -115,6 +115,7 @@ function migrate(raw: Raw): Raw {
     throw new InvalidDataError('Ces données proviennent d’une version plus récente du site.');
   }
   if (version < 2) raw = addStageContacts(raw);
+  else if (version < 3) raw = addStageEmails(raw);
   return raw;
 }
 
@@ -170,4 +171,33 @@ export function normalizeAppData(input: unknown): AppData {
     .map((a) => normalizeApplication(a, byId))
     .filter((a): a is Application => a !== null);
   return { schemaVersion: CURRENT_SCHEMA_VERSION, trackers, applications };
+}
+
+/**
+ * v2 -> v3 : ajoute l'email probable devant le lien LinkedIn ajouté en v2,
+ * uniquement si les coordonnées n'ont pas été modifiées depuis.
+ */
+function addStageEmails(raw: Raw): Raw {
+  if (!Array.isArray(raw.trackers) || !Array.isArray(raw.applications)) return raw;
+  const stageTrackers = new Set(raw.trackers.filter(isObj).filter((t) => t.kind === 'stage').map((t) => t.id));
+  const now = new Date().toISOString();
+  const norm = (v: unknown) => str(v).trim().toLowerCase();
+  const companies = new Map(Object.keys(STAGE_CONTACTS).map((c) => [norm(c), c]));
+
+  const applications = raw.applications.map((a) => {
+    if (!isObj(a) || !stageTrackers.has(a.trackerId)) return a;
+    const company = companies.get(norm(a.company));
+    if (!company) return a;
+    const before = STAGE_LINKEDIN_CONTACTS[company].contactInfo;
+    const after = STAGE_CONTACTS[company].contactInfo;
+    if (before === after || str(a.contactInfo).trim() !== before) return a;
+    const history = Array.isArray(a.history) ? a.history : [];
+    return {
+      ...a,
+      contactInfo: after,
+      updatedAt: now,
+      history: [...history, { id: uid('h'), at: now, kind: 'auto', message: 'Email probable ajouté au contact' }],
+    };
+  });
+  return { ...raw, applications };
 }

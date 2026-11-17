@@ -5,7 +5,7 @@ import { followUpState, isStale } from '@/domain/automation';
 import { getStatus, noResponseStatus } from '@/domain/status';
 import { Overlay } from '@/components/Overlay';
 import { StatusBadge } from '@/components/Status';
-import { ExternalLink } from '@/components/ExternalLink';
+import { ContactLinks, ExternalLink } from '@/components/ExternalLink';
 import { useToast } from '@/components/Toast';
 import { formatDate, formatDateTime, relativeDays } from '@/lib/dates';
 import { ApplicationForm, diffDraft, draftFrom } from './ApplicationForm';
@@ -103,7 +103,7 @@ export function ApplicationDrawer({ applicationId, onClose }: { applicationId: s
         )}
         {app.contactInfo && (
           <span className="small">
-            Contact : <ExternalLink value={app.contactInfo} />
+            Contact : <ContactLinks value={app.contactInfo} />
           </span>
         )}
       </div>

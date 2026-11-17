@@ -4,6 +4,8 @@ import { parseLooseDate } from '@/lib/dates';
 import { createTracker } from '../templates';
 import { fillEmptyFields, guessColumns, rowsToApplications } from '../tableIO';
 import { createApplication } from '../application';
+import { STAGE_LINKEDIN_CONTACTS } from '@/data/contacts';
+import { splitLinks } from '@/lib/links';
 import { normalizeAppData } from '@/storage/schema';
 import { buildSeedData } from '@/data/seed';
 
@@ -115,8 +117,9 @@ describe('migration v1 -> v2 : contacts du stage', () => {
   it('ajoute les contacts sans écraser ce qui est renseigné', () => {
     const { applications, schemaVersion } = normalizeAppData(v1());
     const get = (c: string) => applications.find((a) => a.company === c)!;
-    expect(schemaVersion).toBe(2);
-    expect(applications.every((a) => a.contactInfo.startsWith('https://www.linkedin.com/'))).toBe(true);
+    expect(schemaVersion).toBe(3);
+    expect(applications.every((a) => a.contactInfo.includes('https://www.linkedin.com/'))).toBe(true);
+    expect(get('Zama').contactInfo).toMatch(/^pascal\.paillier@zama\.ai /);
     expect(get('Wiremind').contactName).toContain('Constant Roques');
     expect(get('Wiremind').nextAction).toBe('Écrire à Constant Roques');
     expect(get('Zama').contactName).toBe('Déjà renseigné');
@@ -129,5 +132,30 @@ describe('migration v1 -> v2 : contacts du stage', () => {
     const z = once.applications.find((a) => a.company === 'Zama')!;
     z.contactInfo = '';
     expect(normalizeAppData(JSON.parse(JSON.stringify(once))).applications.find((a) => a.company === 'Zama')!.contactInfo).toBe('');
+  });
+});
+
+describe('migration v2 -> v3 : emails probables', () => {
+  const v2 = () => {
+    const data = buildSeedData({ today: '2026-11-17', now: '2026-11-17T10:00:00.000Z' });
+    const apps = data.applications.map((a) => ({ ...a, contactInfo: STAGE_LINKEDIN_CONTACTS[a.company].contactInfo }));
+    apps.find((a) => a.company === 'Astran')!.contactInfo = 'saisi@main.fr';
+    return JSON.parse(JSON.stringify({ ...data, schemaVersion: 2, applications: apps }));
+  };
+
+  it('ajoute l’email devant le lien LinkedIn non modifié', () => {
+    const { applications } = normalizeAppData(v2());
+    const get = (c: string) => applications.find((a) => a.company === c)!;
+    expect(get('Zama').contactInfo).toMatch(/^pascal\.paillier@zama\.ai \(à vérifier\) https:\/\/www\.linkedin\.com\//);
+    expect(get('Astran').contactInfo).toBe('saisi@main.fr');
+    expect(get('Enedis').contactInfo).toBe(STAGE_LINKEDIN_CONTACTS.Enedis.contactInfo);
+  });
+
+  it('découpe les coordonnées en liens cliquables', () => {
+    expect(splitLinks('a.b@zama.ai (à vérifier) https://www.linkedin.com/x')).toEqual([
+      { text: 'a.b@zama.ai', href: 'mailto:a.b@zama.ai' },
+      { text: '(à vérifier)', href: null },
+      { text: 'https://www.linkedin.com/x', href: 'https://www.linkedin.com/x' },
+    ]);
   });
 });

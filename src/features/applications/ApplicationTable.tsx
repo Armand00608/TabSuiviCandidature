@@ -3,7 +3,7 @@ import type { SortKey } from '@/domain/query';
 import { followUpState } from '@/domain/automation';
 import { getStatus, isOpenCategory } from '@/domain/status';
 import { StatusSelect } from '@/components/Status';
-import { ExternalLink } from '@/components/ExternalLink';
+import { ContactLinks, ExternalLink } from '@/components/ExternalLink';
 import { useStore } from '@/state/store';
 import { formatDate, relativeDays } from '@/lib/dates';
 
@@ -81,8 +81,8 @@ export function ApplicationTable({ tracker, applications, sort, desc, onSort, on
                 <td>
                   {a.contactName}
                   {a.contactInfo && (
-                    <div className="sub truncate" style={{ maxWidth: 180 }}>
-                      <ExternalLink value={a.contactInfo} />
+                    <div className="sub" style={{ maxWidth: 220 }}>
+                      <ContactLinks value={a.contactInfo} stacked />
                     </div>
                   )}
                 </td>
